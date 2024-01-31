@@ -1,0 +1,21 @@
+{
+    "name": "serde_with_nested",
+    "image": "mcr.microsoft.com/devcontainers/rust:1",
+    // Allow bind mounts from within the devcontainer.
+    // See https://github.com/devcontainers/features/tree/main/src/docker-outside-of-docker
+    "workspaceFolder": "${localWorkspaceFolder}",
+    "workspaceMount": "source=${localWorkspaceFolder},target=${localWorkspaceFolder},type=bind",
+    "features": {
+        "ghcr.io/devcontainers-contrib/features/pre-commit:2": {},
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "editorconfig.editorconfig",
+                "esbenp.prettier-vscode",
+                "github.vscode-github-actions"
+            ]
+        }
+    }
+}
