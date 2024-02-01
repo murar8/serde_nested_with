@@ -12,14 +12,45 @@ const ATTRIBUTE_NAME: &str = "serde_nested_with";
 struct Field {
     ty: syn::Type,
     substitute: syn::Path,
-    with: String,
+    with: Option<String>,
+    serialize_with: Option<String>,
+    deserialize_with: Option<String>,
 }
 
 impl Field {
+    fn operation(&self) -> Option<syn::Ident> {
+        let op = match self {
+            Field { with: Some(_), .. } => "with",
+            Field { serialize_with: Some(_), .. } => "serialize_with",
+            Field { deserialize_with: Some(_), .. } => "deserialize_with",
+            _ => return None,
+        };
+        Some(syn::Ident::new(op, proc_macro::Span::call_site().into()))
+    }
+
+    fn inner_module_name(&self) -> Option<&str> {
+        match self {
+            Field { with: Some(path), .. } => Some(path),
+            Field { serialize_with: Some(path), .. } => Some(path),
+            Field { deserialize_with: Some(path), .. } => Some(path),
+            _ => None,
+        }
+    }
+
     fn module_name(&self) -> String {
         let mut hasher = DefaultHasher::new();
         self.substitute.hash(&mut hasher);
         format!("__serde_nested_with_{}", hasher.finish())
+    }
+
+    fn module_name_with_operation(&self) -> Option<String> {
+        let module_name = self.module_name();
+        match self {
+            Field { with: Some(_), .. } => Some(module_name),
+            Field { serialize_with: Some(_), .. } => Some(module_name + "::serialize"),
+            Field { deserialize_with: Some(_), .. } => Some(module_name + "::deserialize"),
+            _ => None,
+        }
     }
 
     fn get_generic_argument(&self) -> syn::Path {
@@ -62,7 +93,9 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
                     if ident == ATTRIBUTE_NAME {
                         *ident = syn::parse_quote!(serde);
                         let module_name = attrs.module_name();
-                        list.tokens = quote! { with = #module_name };
+                        let module_name_with_operation = attrs.module_name_with_operation();
+                        let operation = attrs.operation().unwrap();
+                        list.tokens = quote! { #operation = #module_name_with_operation };
                         modules.insert(module_name, attrs);
                         break;
                     }
@@ -73,8 +106,9 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
 
     let modules = modules.into_iter().map(|(module_name, attrs)| {
         let module_name_id = syn::Ident::new(&module_name, proc_macro::Span::call_site().into());
-        let inner_module_name = &attrs.with;
+        let inner_module_name = &attrs.inner_module_name();
         let field_ty = &attrs.ty;
+        let operation = attrs.operation().unwrap();
         let generic_argument = attrs.get_generic_argument();
         let wrapper_type = attrs.plug_generic_argument("Wrapper");
         let wrapper_type_with_path = attrs.plug_generic_argument_with_path("Wrapper");
@@ -86,7 +120,7 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
 
                 #[derive(serde::Serialize, serde::Deserialize)]
                 #[serde(transparent)]
-                struct Wrapper(#[serde(with=#inner_module_name)] #generic_argument);
+                struct Wrapper(#[serde(#operation=#inner_module_name)] #generic_argument);
 
                 pub fn serialize<S: serde::Serializer>(
                     val: &#field_ty,

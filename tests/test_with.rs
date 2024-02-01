@@ -19,7 +19,7 @@ pub struct Foo {
 }
 
 #[test]
-fn test_ser_de() {
+fn test_with() {
     let item = Foo {
         bar0: OffsetDateTime::from_unix_timestamp(1000000000).unwrap(),
         bar1: OffsetDateTime::from_unix_timestamp(1000000000).ok(),
