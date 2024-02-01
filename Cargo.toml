@@ -7,3 +7,11 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
+darling = "0.20.5"
+quote = "1.0.35"
+syn = "2.0.48"
+
+[dev-dependencies]
+serde = { version = "1.0.196", features = ["derive"] }
+serde_test = "1.0.176"
+time = { version = "0.3.32", features = ["formatting", "parsing", "serde"] }
