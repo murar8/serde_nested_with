@@ -25,6 +25,7 @@ impl Field {
     /// Returns the name of the argument that should be passed to the serde operation.
     fn serde_operation(&self) -> &str {
         match self {
+            Field { serialize_with: Some(_), deserialize_with: Some(_), .. } => "with",
             Field { with: Some(_), .. } => "with",
             Field { serialize_with: Some(_), .. } => "serialize_with",
             Field { deserialize_with: Some(_), .. } => "deserialize_with",
@@ -35,6 +36,11 @@ impl Field {
     /// Returns the name of the serde operation as a syn identifier.
     fn serde_operation_ident(&self) -> syn::Ident {
         syn::Ident::new(self.serde_operation(), self.ty.span())
+    }
+
+    fn helper_module_name(&self) -> String {
+        let base_name = self.outer_module_base_name();
+        base_name + "_helper"
     }
 
     /// Returns the name of the generated module that will be used for (de)serialization.
@@ -52,6 +58,7 @@ impl Field {
     fn outer_module_name_with_op(&self) -> String {
         let base_name = self.outer_module_base_name();
         match self {
+            Field { serialize_with: Some(_), deserialize_with: Some(_), .. } => base_name,
             Field { with: Some(_), .. } => base_name,
             Field { serialize_with: Some(_), .. } => base_name + "::serialize",
             Field { deserialize_with: Some(_), .. } => base_name + "::deserialize",
@@ -61,11 +68,13 @@ impl Field {
 
     /// Returns the path to the user provided module or function that will be used for
     /// (de)serialization.
-    fn inner_module_name_with_op(&self) -> &str {
+    fn inner_module_name_with_op(&self) -> String {
+        let helper_name = self.helper_module_name();
         match self {
-            Field { with: Some(path), .. } => path,
-            Field { serialize_with: Some(path), .. } => path,
-            Field { deserialize_with: Some(path), .. } => path,
+            Field { serialize_with: Some(_), deserialize_with: Some(_), .. } => helper_name,
+            Field { with: Some(path), .. } => path.clone(),
+            Field { serialize_with: Some(path), .. } => path.clone(),
+            Field { deserialize_with: Some(path), .. } => path.clone(),
             _ => abort!(self.ty.span(), "missing serde operation"),
         }
     }
@@ -139,8 +148,8 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
-    let modules = modules.into_iter().map(|(outer_module_name, attrs)| {
-        let outer_module_name = syn::Ident::new(&outer_module_name, attrs.ty.span());
+    let convert_modules = modules.iter().map(|(outer_module_name, attrs)| {
+        let outer_module_name = syn::Ident::new(outer_module_name, attrs.ty.span());
         let inner_module_name = &attrs.inner_module_name_with_op();
         let field_ty = &attrs.ty;
         let operation = attrs.serde_operation_ident();
@@ -182,8 +191,33 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
+    let helper_modules = modules.values().map(|attrs| {
+        let helper_module_name = syn::Ident::new(&attrs.helper_module_name(), attrs.ty.span());
+        let serialize_with =
+            match attrs.serialize_with.as_ref().map(|s| syn::parse_str::<syn::Expr>(s)) {
+                Some(Ok(s)) => quote! { pub use super::#s; },
+                None => quote! {},
+                Some(Err(_)) => abort!(attrs.ty, "failed to parse serialize_with"),
+            };
+        let deserialize_with =
+            match attrs.deserialize_with.as_ref().map(|s| syn::parse_str::<syn::Expr>(s)) {
+                Some(Ok(s)) => quote! { pub use super::#s; },
+                None => quote! {},
+                Some(Err(_)) => abort!(attrs.ty, "failed to parse deserialize_with"),
+            };
+
+        quote! {
+            mod #helper_module_name {
+                use super::*;
+                #serialize_with
+                #deserialize_with
+            }
+        }
+    });
+
     let output = quote! {
-        #(#modules)*
+        #(#helper_modules)*
+        #(#convert_modules)*
         #input
     };
     output.into()

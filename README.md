@@ -45,9 +45,6 @@ mod example {
 
 -   Only one of the fields can be substituted in case multiple generics are present.
 
--   Currently only one attribute between `with`, `serialize_with` and `deserialize_with` is
-    allowed per field. This can be easily extended in the future if needed.
-
 ## Release process
 
 When a [SemVer](https://semver.org/) compatible git tag is pushed to the repo a new version of the package will be published to [crates.io](https://crates.io/crates/serde_nested_with).
