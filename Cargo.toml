@@ -1,11 +1,3 @@
-[package]
-name = "serde_with_nested"
-version = "0.1.0"
-edition = "2021"
-
-[lib]
-proc-macro = true
-
 [dependencies]
 darling = "0.20.5"
 proc-macro-error = "1.0.4"
@@ -13,6 +5,14 @@ quote = "1.0.35"
 syn = "2.0.48"
 
 [dev-dependencies]
-serde = { version = "1.0.196", features = ["derive"] }
+serde = {version = "1.0.196", features = ["derive"]}
 serde_test = "1.0.176"
-time = { version = "0.3.32", features = ["formatting", "parsing", "serde"] }
+time = {version = "0.3.32", features = ["formatting", "parsing", "serde"]}
+
+[lib]
+proc-macro = true
+
+[package]
+edition = "2021"
+name = "serde_with_nested"
+version = "0.1.0"
