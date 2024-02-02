@@ -13,11 +13,11 @@ time = {version = "0.3.32", features = ["formatting", "parsing", "serde"]}
 proc-macro = true
 
 [package]
-edition = "2021"
-name = "serde_nested_with"
-version = "0.1.0"
-description = "Use serde `with` attribute on nested fields."
-license = "MIT"
-repository = "https://github.com/murar8/serde_nested_with"
 authors = ["Lorenzo Murarotto <lnzmrr@gmail.com>"]
+description = "Use serde `with` attribute on nested fields."
+edition = "2021"
 keywords = ["serde"]
+license = "MIT"
+name = "serde_nested_with"
+repository = "https://github.com/murar8/serde_nested_with"
+version = "0.1.0"

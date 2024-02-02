@@ -13,9 +13,7 @@ repos:
       hooks:
           - id: check-added-large-files # Prevents giant files from being committed.
           - id: check-case-conflict # Checks for files that would conflict in case-insensitive filesystems.
-          - id: check-executables-have-shebangs # Ensures that (non-binary) executables have a shebang.
           - id: check-merge-conflict # Checks for files that contain merge conflict strings.
-          - id: check-shebang-scripts-are-executable # Ensures that (non-binary) files with a shebang are executable.
           - id: check-symlinks # Checks for symlinks which do not point to anything.
           - id: check-vcs-permalinks # Ensures that links to vcs websites are permalinks.
           - id: destroyed-symlinks # Detects symlinks which are changed to regular files with a content of a path which that symlink was pointing to.
