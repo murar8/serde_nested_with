@@ -19,20 +19,22 @@ cargo add serde_nested_with
 ## Example
 
 ```rust
-use serde::{Deserialize, Serialize};
-use serde_test::{assert_tokens, Token};
-use serde_nested_with::serde_nested_with;
-use std::collections::BTreeMap;
-use time::serde::rfc3339;
-use time::OffsetDateTime;
+mod hi {
+    use serde::{Deserialize, Serialize};
+    use serde_test::{assert_tokens, Token};
+    use serde_nested_with::serde_nested_with;
+    use std::collections::BTreeMap;
+    use time::serde::rfc3339;
+    use time::OffsetDateTime;
 
-#[serde_nested_with]
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Foo {
-    #[serde_nested_with(substitute = "Option<Option<_>>", with = "rfc3339")]
-    pub bar: Option<Option<OffsetDateTime>>,
-    #[serde_nested_with(substitute = "Option<BTreeMap<i32, _>>", with = "rfc3339")]
-    pub baz: Option<BTreeMap<i32, OffsetDateTime>>,
+    #[serde_nested_with]
+    #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+    pub struct Foo {
+        #[serde_nested_with(substitute = "Option<Option<_>>", with = "rfc3339")]
+        pub bar: Option<Option<OffsetDateTime>>,
+        #[serde_nested_with(substitute = "Option<BTreeMap<i32, _>>", with = "rfc3339")]
+        pub baz: Option<BTreeMap<i32, OffsetDateTime>>,
+    }
 }
 ```
 
