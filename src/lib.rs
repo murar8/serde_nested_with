@@ -71,7 +71,7 @@ impl Field {
     }
 
     /// Extracts the generic argument that is indicated by the placeholder `_`.
-    fn get_generic_argument(&self) -> syn::Path {
+    fn generic_argument(&self) -> syn::Path {
         let full_ty = self.ty.to_token_stream().to_string();
         let sub_ty = self.substitute.to_token_stream().to_string();
         let (prefix, suffix) = match sub_ty.split_once('_') {
@@ -144,9 +144,9 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
         let inner_module_name = &attrs.inner_module_name_with_op();
         let field_ty = &attrs.ty;
         let operation = attrs.serde_operation_ident();
-        let generic_argument = attrs.get_generic_argument();
+        let generic_argument = attrs.generic_argument();
         let wrapper_type = attrs.plug_generic_argument("__Wrapper");
-        let wrapper_type_with_path = attrs.plug_generic_argument_turbofish("__Wrapper");
+        let wrapper_type_turbofish = attrs.plug_generic_argument_turbofish("__Wrapper");
 
         quote! {
             mod #outer_module_name {
@@ -174,7 +174,7 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
                 where
                     D: serde::Deserializer<'de>,
                 {
-                    let v = #wrapper_type_with_path::deserialize(deserializer)?;
+                    let v = #wrapper_type_turbofish::deserialize(deserializer)?;
                     // SAFETY: Same as in serialize.
                     Ok(unsafe { std::mem::transmute(v) })
                 }
