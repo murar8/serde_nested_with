@@ -1,0 +1,69 @@
+on:
+    workflow_call:
+
+jobs:
+    test:
+        strategy:
+            matrix:
+                include:
+                    - toolchain: beta
+                      os: ubuntu-latest
+                    - toolchain: nightly
+                      os: ubuntu-latest
+                    - toolchain: stable
+                      os: macos-latest
+                    - toolchain: stable
+                      os: windows-latest
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: ${{ matrix.toolchain }}
+                  profile: minimal
+            - uses: Swatinem/rust-cache@v2
+            - uses: actions-rs/cargo@v1
+              with:
+                  command: test
+                  args: --workspace --all-features --all-targets
+
+    # See https://users.rust-lang.org/t/psa-please-specify-precise-dependency-versions-in-cargo-toml/71277
+    minimal-version-test:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: nightly
+                  profile: minimal
+            - uses: Swatinem/rust-cache@v2
+            - uses: taiki-e/install-action@cargo-hack
+            - uses: taiki-e/install-action@cargo-minimal-versions
+            - uses: actions-rs/cargo@v1
+              with:
+                  command: minimal-versions
+                  args: test --workspace --all-features --all-targets
+
+    doctest:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+            - uses: actions-rs/toolchain@v1
+              with:
+                  toolchain: stable
+                  profile: minimal
+            - uses: Swatinem/rust-cache@v2
+            - uses: actions-rs/cargo@v1
+              with:
+                  command: test
+                  args: --workspace --all-features --doc
