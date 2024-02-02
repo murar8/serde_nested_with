@@ -19,7 +19,7 @@ cargo add serde_nested_with
 ## Example
 
 ```rust
-mod hi {
+mod example {
     use serde::{Deserialize, Serialize};
     use serde_test::{assert_tokens, Token};
     use serde_nested_with::serde_nested_with;
