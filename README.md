@@ -43,6 +43,8 @@ mod example {
 -   This macro only works with the `with`, `serialize_with` and `deserialize_with` attributes. It
     does not work with any other serde attribute.
 
+-   Only one of the fields can be substituted in case multiple generics are present.
+
 -   Currently only one attribute between `with`, `serialize_with` and `deserialize_with` is
     allowed per field. This can be easily extended in the future if needed.
 
