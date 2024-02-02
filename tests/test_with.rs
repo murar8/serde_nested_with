@@ -10,12 +10,14 @@ use time::OffsetDateTime;
 pub struct Foo {
     #[serde(with = "rfc3339")]
     pub bar0: OffsetDateTime,
-    #[serde_nested_with(substitute = "Option<_>", with = "rfc3339")]
-    pub bar1: Option<OffsetDateTime>,
+    #[serde_nested_with(substitute = "std::option::Option<_>", with = "rfc3339")]
+    pub bar1: std::option::Option<OffsetDateTime>,
     #[serde_nested_with(substitute = "Option<Option<_>>", with = "rfc3339")]
     pub bar2: Option<Option<OffsetDateTime>>,
     #[serde_nested_with(substitute = "Option<BTreeMap<i32, _>>", with = "rfc3339")]
     pub bar3: Option<BTreeMap<i32, OffsetDateTime>>,
+    #[serde_nested_with(substitute = "BTreeMap<i32, _>", with = "time::serde::rfc3339")]
+    pub bar4: BTreeMap<i32, OffsetDateTime>,
 }
 
 #[test]
@@ -31,12 +33,17 @@ fn test_with() {
             map.insert(3, OffsetDateTime::from_unix_timestamp(3000000000).unwrap());
             Some(map)
         },
+        bar4: {
+            let mut map = BTreeMap::new();
+            map.insert(1, OffsetDateTime::from_unix_timestamp(1000000000).unwrap());
+            map
+        },
     };
 
     assert_tokens(
         &item,
         &[
-            Token::Struct { name: "Foo", len: 4 }, //:w
+            Token::Struct { name: "Foo", len: 5 },
             Token::Str("bar0"),
             Token::Str("2001-09-09T01:46:40Z"),
             Token::Str("bar1"),
@@ -55,6 +62,11 @@ fn test_with() {
             Token::Str("2033-05-18T03:33:20Z"),
             Token::I32(3),
             Token::Str("2065-01-24T05:20:00Z"),
+            Token::MapEnd,
+            Token::Str("bar4"),
+            Token::Map { len: Some(1) },
+            Token::I32(1),
+            Token::Str("2001-09-09T01:46:40Z"),
             Token::MapEnd,
             Token::StructEnd,
         ],

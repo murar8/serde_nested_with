@@ -9,18 +9,15 @@ use time::OffsetDateTime;
 pub struct Foo {
     #[serde_nested_with(substitute = "Option<_>", deserialize_with = "rfc3339::deserialize")]
     pub bar1: Option<OffsetDateTime>,
-    #[serde_nested_with(
-        substitute = "Option<Option<_>>",
-        deserialize_with = "rfc3339::deserialize"
-    )]
-    pub bar2: Option<Option<OffsetDateTime>>,
+    #[serde_nested_with(substitute = "Vec<Option<_>>", deserialize_with = "rfc3339::deserialize")]
+    pub bar2: Vec<Option<OffsetDateTime>>,
 }
 
 #[test]
-fn detest_serialize_with() {
+fn test_serialize_with() {
     let item = Foo {
         bar1: OffsetDateTime::from_unix_timestamp(1000000000).ok(),
-        bar2: OffsetDateTime::from_unix_timestamp(1000000000).ok().into(),
+        bar2: vec![OffsetDateTime::from_unix_timestamp(1000000000).ok()],
     };
 
     assert_de_tokens(
@@ -31,9 +28,10 @@ fn detest_serialize_with() {
             Token::Some,
             Token::Str("2001-09-09T01:46:40Z"),
             Token::Str("bar2"),
-            Token::Some,
+            Token::Seq { len: Some(1) },
             Token::Some,
             Token::Str("2001-09-09T01:46:40Z"),
+            Token::SeqEnd,
             Token::StructEnd,
         ],
     );
