@@ -1,5 +1,5 @@
 {
-    "name": "serde_with_nested",
+    "name": "serde_nested_with",
     "image": "mcr.microsoft.com/devcontainers/rust:1",
     // Allow bind mounts from within the devcontainer.
     // See https://github.com/devcontainers/features/tree/main/src/docker-outside-of-docker

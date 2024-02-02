@@ -1,6 +1,6 @@
 use serde::Serialize;
+use serde_nested_with::serde_nested_with;
 use serde_test::{assert_ser_tokens, Token};
-use serde_with_nested::serde_nested_with;
 use time::serde::rfc3339;
 use time::OffsetDateTime;
 

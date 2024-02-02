@@ -14,5 +14,10 @@ proc-macro = true
 
 [package]
 edition = "2021"
-name = "serde_with_nested"
+name = "serde_nested_with"
 version = "0.1.0"
+description = "Use serde `with` attribute on nested fields."
+license = "MIT"
+repository = "https://github.com/murar8/serde_nested_with"
+authors = ["Lorenzo Murarotto <lnzmrr@gmail.com>"]
+keywords = ["serde"]

@@ -140,16 +140,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_test"
-version = "1.0.176"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a2f49ace1498612d14f7e0b8245519584db8299541dfe31a06374a828d620ab"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "serde_with_nested"
+name = "serde_nested_with"
 version = "0.1.0"
 dependencies = [
  "darling",
@@ -159,6 +150,15 @@ dependencies = [
  "serde_test",
  "syn 2.0.48",
  "time",
+]
+
+[[package]]
+name = "serde_test"
+version = "1.0.176"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5a2f49ace1498612d14f7e0b8245519584db8299541dfe31a06374a828d620ab"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

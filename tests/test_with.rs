@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
+use serde_nested_with::serde_nested_with;
 use serde_test::{assert_tokens, Token};
-use serde_with_nested::serde_nested_with;
 use std::collections::BTreeMap;
 use time::serde::rfc3339;
 use time::OffsetDateTime;
