@@ -25,7 +25,7 @@ mod example {
     use time::serde::rfc3339;
     use time::OffsetDateTime;
 
-    #[serde_nested]
+    #[serde_nested] // Make sure to add this attribute above the derive!
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Foo {
         #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]

@@ -20,4 +20,4 @@ keywords = ["serde"]
 license = "MIT"
 name = "serde_nested_with"
 repository = "https://github.com/murar8/serde_nested_with"
-version = "0.2.1"
+version = "0.2.2"
