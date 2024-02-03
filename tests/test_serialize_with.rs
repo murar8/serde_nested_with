@@ -1,15 +1,15 @@
 use serde::Serialize;
-use serde_nested_with::serde_nested_with;
+use serde_nested_with::serde_nested;
 use serde_test::{assert_ser_tokens, Token};
 use time::serde::rfc3339;
 use time::OffsetDateTime;
 
-#[serde_nested_with]
+#[serde_nested]
 #[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Foo {
-    #[serde_nested_with(substitute = "Option<_>", serialize_with = "rfc3339::serialize")]
+    #[serde_nested(sub = "OffsetDateTime", serde(serialize_with = "rfc3339::serialize"))]
     pub bar1: Option<OffsetDateTime>,
-    #[serde_nested_with(substitute = "Option<Option<_>>", serialize_with = "rfc3339::serialize")]
+    #[serde_nested(sub = "OffsetDateTime", serde(serialize_with = "rfc3339::serialize"))]
     pub bar2: Option<Option<OffsetDateTime>>,
 }
 
