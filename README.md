@@ -6,9 +6,7 @@
 [![.github/workflows/audit.yml](https://github.com/murar8/serde_nested_with/actions/workflows/audit.yml/badge.svg)](https://github.com/murar8/serde_nested_with/actions/workflows/audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This is a small procedural macro that allows you to use serde's `with`, `serialize_with` and
-`deserialize_with` attributes with a nested module or function. This is useful when you want to
-use a custom (de)serializer that is defined in a different module or crate.
+This is a small procedural macro that allows you to use serde attributes with a nested module or function. This is useful when you want to use a custom (de)serializer that is defined in a different module or crate.
 
 ## Installation
 
@@ -22,28 +20,21 @@ cargo add serde_nested_with
 mod example {
     use serde::{Deserialize, Serialize};
     use serde_test::{assert_tokens, Token};
-    use serde_nested_with::serde_nested_with;
+    use serde_nested_with::serde_nested;
     use std::collections::BTreeMap;
     use time::serde::rfc3339;
     use time::OffsetDateTime;
 
-    #[serde_nested_with]
+    #[serde_nested]
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Foo {
-        #[serde_nested_with(substitute = "Option<Option<_>>", with = "rfc3339")]
+        #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
         pub bar: Option<Option<OffsetDateTime>>,
-        #[serde_nested_with(substitute = "Option<BTreeMap<i32, _>>", with = "rfc3339")]
+        #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
         pub baz: Option<BTreeMap<i32, OffsetDateTime>>,
     }
 }
 ```
-
-## Limitations
-
--   This macro only works with the `with`, `serialize_with` and `deserialize_with` attributes. It
-    does not work with any other serde attribute.
-
--   Only one of the fields can be substituted in case multiple generics are present.
 
 ## Release process
 

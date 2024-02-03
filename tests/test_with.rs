@@ -1,23 +1,24 @@
 use serde::{Deserialize, Serialize};
-use serde_nested_with::serde_nested_with;
+use serde_nested_with::serde_nested;
 use serde_test::{assert_tokens, Token};
 use std::collections::BTreeMap;
+use std::option::Option as O_p_t_i_o_n;
 use time::serde::rfc3339;
 use time::OffsetDateTime;
 
-#[serde_nested_with]
+#[serde_nested]
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Foo {
     #[serde(with = "rfc3339")]
     pub bar0: OffsetDateTime,
-    #[serde_nested_with(substitute = "std::option::Option<_>", with = "rfc3339")]
+    #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
     pub bar1: std::option::Option<OffsetDateTime>,
-    #[serde_nested_with(substitute = "Option<Option<_>>", with = "rfc3339")]
-    pub bar2: Option<Option<OffsetDateTime>>,
-    #[serde_nested_with(substitute = "Option<BTreeMap<i32, _>>", with = "rfc3339")]
+    #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
+    pub bar2: O_p_t_i_o_n<Option<OffsetDateTime>>,
+    #[serde_nested(sub = "OffsetDateTime", serde(with = "time::serde::rfc3339"))]
     pub bar3: Option<BTreeMap<i32, OffsetDateTime>>,
-    #[serde_nested_with(substitute = "BTreeMap<i32, _>", with = "time::serde::rfc3339")]
-    pub bar4: BTreeMap<i32, OffsetDateTime>,
+    #[serde_nested(sub = "time::OffsetDateTime", serde(with = "rfc3339"))]
+    pub bar4: BTreeMap<i32, time::OffsetDateTime>,
 }
 
 #[test]

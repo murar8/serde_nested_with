@@ -2,133 +2,60 @@
 
 use darling::FromField;
 use proc_macro::TokenStream;
-use proc_macro_error::{abort, proc_macro_error};
+use proc_macro_error::proc_macro_error;
 use quote::{quote, ToTokens};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
+use std::hash::{Hash as _, Hasher};
 use syn::spanned::Spanned;
 
-const ATTRIBUTE_NAME: &str = "serde_nested_with";
+const WRAPPER_NAME: &str = "__Wrapper";
+const ATTRIBUTE_NAME: &str = "serde_nested";
 
-#[derive(FromField)]
-#[darling(attributes(serde_nested_with))]
+#[derive(Debug, FromField)]
+#[darling(attributes(serde_nested))]
 struct Field {
     ty: syn::Type,
-    substitute: syn::Path,
-    with: Option<String>,
-    serialize_with: Option<String>,
-    deserialize_with: Option<String>,
+    sub: syn::Path,
+    serde: syn::Meta,
 }
 
 impl Field {
-    /// Returns the name of the argument that should be passed to the serde operation.
-    fn serde_operation(&self) -> &str {
-        match self {
-            Field { serialize_with: Some(_), deserialize_with: Some(_), .. } => "with",
-            Field { with: Some(_), .. } => "with",
-            Field { serialize_with: Some(_), .. } => "serialize_with",
-            Field { deserialize_with: Some(_), .. } => "deserialize_with",
-            _ => abort!(self.substitute.span(), "missing serde operation"),
-        }
+    fn module_name(&self) -> String {
+        let hasher = &mut DefaultHasher::new();
+        self.ty.hash(hasher);
+        self.sub.hash(hasher);
+        self.serde.hash(hasher);
+        format!("__serde_nested_{}", hasher.finish())
     }
 
-    /// Returns the name of the serde operation as a syn identifier.
-    fn serde_operation_ident(&self) -> syn::Ident {
-        syn::Ident::new(self.serde_operation(), self.ty.span())
+    fn wrapper_type(&self) -> String {
+        let ty = self.ty.to_token_stream().to_string();
+        let sub = self.sub.to_token_stream().to_string();
+        ty.replace(&sub, WRAPPER_NAME)
     }
 
-    fn helper_module_name(&self) -> String {
-        let base_name = self.outer_module_base_name();
-        base_name + "_helper"
+    fn wrapper_type_ident(&self) -> syn::Path {
+        let ty = self.wrapper_type();
+        syn::parse_str(&ty).unwrap()
     }
 
-    /// Returns the name of the generated module that will be used for (de)serialization.
-    fn outer_module_base_name(&self) -> String {
-        let mut hasher = DefaultHasher::new();
-        self.substitute.to_token_stream().to_string().hash(&mut hasher);
-        self.with.hash(&mut hasher);
-        self.serialize_with.hash(&mut hasher);
-        self.deserialize_with.hash(&mut hasher);
-        format!("__serde_nested_with_{}", hasher.finish())
-    }
-
-    /// Returns the path to the generated module or function that will be used for
-    /// (de)serialization.
-    fn outer_module_name_with_op(&self) -> String {
-        let base_name = self.outer_module_base_name();
-        match self {
-            Field { serialize_with: Some(_), deserialize_with: Some(_), .. } => base_name,
-            Field { with: Some(_), .. } => base_name,
-            Field { serialize_with: Some(_), .. } => base_name + "::serialize",
-            Field { deserialize_with: Some(_), .. } => base_name + "::deserialize",
-            _ => abort!(self.substitute.span(), "missing serde operation"),
-        }
-    }
-
-    /// Returns the path to the user provided module or function that will be used for
-    /// (de)serialization.
-    fn inner_module_name_with_op(&self) -> String {
-        let helper_name = self.helper_module_name();
-        match self {
-            Field { serialize_with: Some(_), deserialize_with: Some(_), .. } => helper_name,
-            Field { with: Some(path), .. } => path.clone(),
-            Field { serialize_with: Some(path), .. } => path.clone(),
-            Field { deserialize_with: Some(path), .. } => path.clone(),
-            _ => abort!(self.ty.span(), "missing serde operation"),
-        }
-    }
-
-    /// Extracts the generic argument that is indicated by the placeholder `_`.
-    fn generic_argument(&self) -> syn::Path {
-        let full_ty = self.ty.to_token_stream().to_string();
-        let sub_ty = self.substitute.to_token_stream().to_string();
-        let (prefix, suffix) = match sub_ty.split_once('_') {
-            Some(res) => res,
-            None => abort!(self.substitute.span(), "missing placeholder `_`"),
-        };
-        let generic = full_ty
-            .strip_prefix(prefix)
-            .and_then(|s| s.strip_suffix(suffix))
-            .and_then(|s| syn::parse_str(s).ok());
-        match generic {
-            Some(generic) => generic,
-            None => abort!(self.substitute.span(), "placeholder does not match the type"),
-        }
-    }
-
-    /// Plugs the provided generic argument in place of the placeholder `_`.
-    fn plug_generic_argument(&self, generic_argument: &str) -> syn::Path {
-        let ty = self.substitute.to_token_stream().to_string();
-        let ty = ty.replace('_', generic_argument);
-        match syn::parse_str(&ty) {
-            Ok(path) => path,
-            Err(_) => abort!(self.substitute.span(), "placeholder does not match the type"),
-        }
-    }
-
-    /// Plugs the provided generic argument in place of the placeholder `_` and adds turbofish
-    /// syntax.
-    fn plug_generic_argument_turbofish(&self, generic_argument: &str) -> syn::Path {
-        let ty = self.substitute.to_token_stream().to_string();
-        let ty = ty.replacen('<', ":: <", 1);
-        let ty = ty.replace('_', generic_argument);
-        match syn::parse_str(&ty) {
-            Ok(path) => path,
-            Err(_) => abort!(self.substitute.span(), "placeholder does not match the type"),
-        }
+    fn wrapper_type_turbofish(&self) -> syn::Path {
+        let ty = self.wrapper_type();
+        let ty = ty.replacen('<', " :: <", 1);
+        syn::parse_str(&ty).unwrap()
     }
 }
 
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
+pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = syn::parse_macro_input!(input as syn::ItemStruct);
-    let mut modules = HashMap::new();
+    let mut fields = HashMap::new();
 
     for field in input.fields.iter_mut() {
-        let attrs = match Field::from_field(field) {
-            Ok(attrs) => attrs,
+        let info = match Field::from_field(field) {
+            Ok(field) => field,
             Err(_) => continue,
         };
         for attr in field.attrs.iter_mut() {
@@ -136,11 +63,9 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
                 if let Some(syn::PathSegment { ident, .. }) = list.path.segments.first_mut() {
                     if ident == ATTRIBUTE_NAME {
                         *ident = syn::parse_quote!(serde);
-                        let serde_operation_ident = attrs.serde_operation_ident();
-                        let outer_module_name_with_op = attrs.outer_module_name_with_op();
-                        list.tokens =
-                            quote! { #serde_operation_ident = #outer_module_name_with_op };
-                        modules.insert(attrs.outer_module_base_name(), attrs);
+                        let module_name = info.module_name();
+                        list.tokens = quote! { with = #module_name };
+                        fields.insert(module_name, info);
                         break;
                     }
                 }
@@ -148,24 +73,23 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     }
 
-    let convert_modules = modules.iter().map(|(outer_module_name, attrs)| {
-        let outer_module_name = syn::Ident::new(outer_module_name, attrs.ty.span());
-        let inner_module_name = &attrs.inner_module_name_with_op();
-        let field_ty = &attrs.ty;
-        let operation = attrs.serde_operation_ident();
-        let generic_argument = attrs.generic_argument();
-        let wrapper_type = attrs.plug_generic_argument("__Wrapper");
-        let wrapper_type_turbofish = attrs.plug_generic_argument_turbofish("__Wrapper");
+    let modules = fields.into_iter().map(|(module_name, field)| {
+        let module_name = syn::Ident::new(&module_name, input.span());
+        let field_serde_attr = &field.serde;
+        let field_sub = &field.sub;
+        let field_ty = &field.ty;
+        let wrapper_type = field.wrapper_type_ident();
+        let wrapper_type_turbofish = field.wrapper_type_turbofish();
 
         quote! {
-            mod #outer_module_name {
+            mod #module_name {
                 use super::*;
                 use serde::{Serialize as _, Deserialize as _};
 
                 #[derive(serde::Serialize, serde::Deserialize)]
                 #[serde(transparent)]
                 #[repr(transparent)]
-                struct __Wrapper(#[serde(#operation=#inner_module_name)] #generic_argument);
+                struct __Wrapper(#[#field_serde_attr] #field_sub);
 
                 pub fn serialize<S: serde::Serializer>(
                     val: &#field_ty,
@@ -191,34 +115,10 @@ pub fn serde_nested_with(_: TokenStream, input: TokenStream) -> TokenStream {
         }
     });
 
-    let helper_modules = modules.values().map(|attrs| {
-        let helper_module_name = syn::Ident::new(&attrs.helper_module_name(), attrs.ty.span());
-        let serialize_with =
-            match attrs.serialize_with.as_ref().map(|s| syn::parse_str::<syn::Expr>(s)) {
-                Some(Ok(s)) => quote! { pub use super::#s; },
-                None => quote! {},
-                Some(Err(_)) => abort!(attrs.ty, "failed to parse serialize_with"),
-            };
-        let deserialize_with =
-            match attrs.deserialize_with.as_ref().map(|s| syn::parse_str::<syn::Expr>(s)) {
-                Some(Ok(s)) => quote! { pub use super::#s; },
-                None => quote! {},
-                Some(Err(_)) => abort!(attrs.ty, "failed to parse deserialize_with"),
-            };
-
-        quote! {
-            mod #helper_module_name {
-                use super::*;
-                #serialize_with
-                #deserialize_with
-            }
-        }
-    });
-
     let output = quote! {
-        #(#helper_modules)*
-        #(#convert_modules)*
+        #( #modules )*
         #input
     };
+
     output.into()
 }
