@@ -15,7 +15,7 @@ pub struct Foo {
 }
 
 #[test]
-fn test_with() {
+fn test_serialize_deserialize_with() {
     let item = Foo { bar: OffsetDateTime::from_unix_timestamp(1000000000).ok() };
 
     assert_tokens(

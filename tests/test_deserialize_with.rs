@@ -14,7 +14,7 @@ pub struct Foo {
 }
 
 #[test]
-fn test_serialize_with() {
+fn test_deserialize_with() {
     let item = Foo {
         bar1: OffsetDateTime::from_unix_timestamp(1000000000).ok(),
         bar2: vec![OffsetDateTime::from_unix_timestamp(1000000000).ok()],
