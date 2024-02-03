@@ -19,6 +19,8 @@ pub struct Foo {
     pub bar3: Option<BTreeMap<i32, OffsetDateTime>>,
     #[serde_nested(sub = "time::OffsetDateTime", serde(with = "rfc3339"))]
     pub bar4: BTreeMap<i32, time::OffsetDateTime>,
+    #[serde_nested(sub = "time::OffsetDateTime", serde(with = "rfc3339"))]
+    pub bar5: Vec<(time::OffsetDateTime, time::OffsetDateTime)>,
 }
 
 #[test]
@@ -39,12 +41,16 @@ fn test_with() {
             map.insert(1, OffsetDateTime::from_unix_timestamp(1000000000).unwrap());
             map
         },
+        bar5: vec![(
+            OffsetDateTime::from_unix_timestamp(1000000000).unwrap(),
+            OffsetDateTime::from_unix_timestamp(2000000000).unwrap(),
+        )],
     };
 
     assert_tokens(
         &item,
         &[
-            Token::Struct { name: "Foo", len: 5 },
+            Token::Struct { name: "Foo", len: 6 },
             Token::Str("bar0"),
             Token::Str("2001-09-09T01:46:40Z"),
             Token::Str("bar1"),
@@ -69,6 +75,13 @@ fn test_with() {
             Token::I32(1),
             Token::Str("2001-09-09T01:46:40Z"),
             Token::MapEnd,
+            Token::Str("bar5"),
+            Token::Seq { len: Some(1) },
+            Token::Tuple { len: 2 },
+            Token::Str("2001-09-09T01:46:40Z"),
+            Token::Str("2033-05-18T03:33:20Z"),
+            Token::TupleEnd,
+            Token::SeqEnd,
             Token::StructEnd,
         ],
     );

@@ -16,22 +16,24 @@ const ATTRIBUTE_NAME: &str = "serde_nested";
 #[darling(attributes(serde_nested))]
 struct Field {
     ty: syn::Type,
-    sub: syn::Path,
-    serde: syn::Meta,
+    #[darling(rename = "sub")]
+    substitute: syn::Path,
+    #[darling(rename = "serde")]
+    serde_attr: syn::Meta,
 }
 
 impl Field {
     fn module_name(&self) -> String {
         let hasher = &mut DefaultHasher::new();
         self.ty.hash(hasher);
-        self.sub.hash(hasher);
-        self.serde.hash(hasher);
+        self.substitute.hash(hasher);
+        self.serde_attr.hash(hasher);
         format!("__serde_nested_{}", hasher.finish())
     }
 
     fn wrapper_type(&self) -> String {
         let ty = self.ty.to_token_stream().to_string();
-        let sub = self.sub.to_token_stream().to_string();
+        let sub = self.substitute.to_token_stream().to_string();
         ty.replace(&sub, WRAPPER_NAME)
     }
 
@@ -75,9 +77,9 @@ pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
 
     let modules = fields.into_iter().map(|(module_name, field)| {
         let module_name = syn::Ident::new(&module_name, input.span());
-        let field_serde_attr = &field.serde;
-        let field_sub = &field.sub;
-        let field_ty = &field.ty;
+        let serde_attr = &field.serde_attr;
+        let substitute = &field.substitute;
+        let inner_ty = &field.ty;
         let wrapper_type = field.wrapper_type_ident();
         let wrapper_type_turbofish = field.wrapper_type_turbofish();
 
@@ -89,10 +91,10 @@ pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
                 #[derive(serde::Serialize, serde::Deserialize)]
                 #[serde(transparent)]
                 #[repr(transparent)]
-                struct __Wrapper(#[#field_serde_attr] #field_sub);
+                struct __Wrapper(#[#serde_attr] #substitute);
 
                 pub fn serialize<S: serde::Serializer>(
-                    val: &#field_ty,
+                    val: &#inner_ty,
                     serializer: S
                 ) -> std::result::Result<S::Ok, S::Error> {
                     // SAFETY: __Wrapper is #[repr(transparent)] and has the same size and alignment
@@ -103,7 +105,7 @@ pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
 
                 pub fn deserialize<'de, D>(
                     deserializer: D
-                ) -> std::result::Result<#field_ty, D::Error>
+                ) -> std::result::Result<#inner_ty, D::Error>
                 where
                     D: serde::Deserializer<'de>,
                 {
