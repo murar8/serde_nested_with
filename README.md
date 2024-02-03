@@ -31,7 +31,7 @@ mod example {
         #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
         pub bar: Option<Option<OffsetDateTime>>,
         #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
-        pub baz: Option<BTreeMap<i32, OffsetDateTime>>,
+        pub bar5: Vec<(OffsetDateTime, OffsetDateTime)>,
     }
 }
 ```
