@@ -20,6 +20,8 @@ pub struct Foo {
     #[serde_nested(sub = "time::OffsetDateTime", serde(with = "rfc3339"))]
     pub bar4: BTreeMap<i32, time::OffsetDateTime>,
     #[serde_nested(sub = "time::OffsetDateTime", serde(with = "rfc3339"))]
+    #[serde(rename = "baz")]
+    #[serde(default)]
     pub bar5: Vec<(time::OffsetDateTime, time::OffsetDateTime)>,
 }
 
@@ -75,7 +77,7 @@ fn test_with() {
             Token::I32(1),
             Token::Str("2001-09-09T01:46:40Z"),
             Token::MapEnd,
-            Token::Str("bar5"),
+            Token::Str("baz"),
             Token::Seq { len: Some(1) },
             Token::Tuple { len: 2 },
             Token::Str("2001-09-09T01:46:40Z"),

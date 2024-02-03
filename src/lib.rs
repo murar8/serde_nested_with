@@ -9,10 +9,7 @@ use std::collections::HashMap;
 use std::hash::{Hash as _, Hasher};
 use syn::spanned::Spanned;
 
-const WRAPPER_NAME: &str = "__Wrapper";
-const ATTRIBUTE_NAME: &str = "serde_nested";
-
-#[derive(Debug, FromField)]
+#[derive(Debug, Clone, FromField)]
 #[darling(attributes(serde_nested))]
 struct Field {
     ty: syn::Type,
@@ -23,6 +20,9 @@ struct Field {
 }
 
 impl Field {
+    /// Generate a unique name for the module that will contain the wrapper type and the
+    /// (de)serialization functions. The name is based on the field type, the substitute type,
+    /// and the serde attributes. In this way, we do not generate duplicate modules.
     fn module_name(&self) -> String {
         let hasher = &mut DefaultHasher::new();
         self.ty.hash(hasher);
@@ -31,19 +31,22 @@ impl Field {
         format!("__serde_nested_{}", hasher.finish())
     }
 
-    fn wrapper_type(&self) -> String {
+    /// Get the ident of the wrapper type that will be used to (de)serialize the field.
+    ///
+    /// Example: `Option<OffsetDateTime>` -> `Option<__Wrapper>`
+    fn wrapper_type_ident(&self) -> syn::Path {
         let ty = self.ty.to_token_stream().to_string();
         let sub = self.substitute.to_token_stream().to_string();
-        ty.replace(&sub, WRAPPER_NAME)
-    }
-
-    fn wrapper_type_ident(&self) -> syn::Path {
-        let ty = self.wrapper_type();
+        let ty = ty.replace(&sub, "__Wrapper");
         syn::parse_str(&ty).unwrap()
     }
 
+    /// Get the ident of the wrapper type that will be used to (de)serialize the field, with
+    /// turbofish syntax.
+    ///
+    /// Example: `Option<OffsetDateTime>` -> `Option::<__Wrapper>`
     fn wrapper_type_turbofish(&self) -> syn::Path {
-        let ty = self.wrapper_type();
+        let ty = self.wrapper_type_ident().to_token_stream().to_string();
         let ty = ty.replacen('<', " :: <", 1);
         syn::parse_str(&ty).unwrap()
     }
@@ -53,6 +56,8 @@ impl Field {
 #[proc_macro_attribute]
 pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
     let mut input = syn::parse_macro_input!(input as syn::ItemStruct);
+
+    // Contains the field information for each module.
     let mut fields = HashMap::new();
 
     for field in input.fields.iter_mut() {
@@ -60,15 +65,31 @@ pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
             Ok(field) => field,
             Err(_) => continue,
         };
+
+        // Remove all #[serde(...)] attributes from the field so we can merge them with our own.
+        let mut serde_attributes = Vec::new();
+        field.attrs.retain(|attr| {
+            if let syn::Meta::List(ref list) = attr.meta {
+                if let Some(syn::PathSegment { ident, .. }) = list.path.segments.first() {
+                    if ident == "serde" {
+                        serde_attributes.push(list.tokens.clone());
+                        return false;
+                    }
+                }
+            }
+            true
+        });
+
+        // Replace #[serde_nested] with #[serde(with = "module_name", ...)] and store the field
+        // information for later use.
         for attr in field.attrs.iter_mut() {
             if let syn::Meta::List(ref mut list) = attr.meta {
                 if let Some(syn::PathSegment { ident, .. }) = list.path.segments.first_mut() {
-                    if ident == ATTRIBUTE_NAME {
+                    if ident == "serde_nested" {
                         *ident = syn::parse_quote!(serde);
                         let module_name = info.module_name();
-                        list.tokens = quote! { with = #module_name };
-                        fields.insert(module_name, info);
-                        break;
+                        list.tokens = quote! { with = #module_name, #(#serde_attributes),* };
+                        fields.insert(module_name, info.clone());
                     }
                 }
             }
