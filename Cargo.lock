@@ -141,7 +141,7 @@ dependencies = [
 
 [[package]]
 name = "serde_nested_with"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "darling",
  "proc-macro-error",

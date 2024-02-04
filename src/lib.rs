@@ -17,6 +17,8 @@ struct Field {
     substitute: syn::Path,
     #[darling(rename = "serde")]
     serde_attr: syn::Meta,
+    #[darling(multiple, rename = "derive_trait")]
+    derive_traits: Vec<syn::Path>,
 }
 
 impl Field {
@@ -103,13 +105,14 @@ pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
         let inner_ty = &field.ty;
         let wrapper_type = field.wrapper_type_ident();
         let wrapper_type_turbofish = field.wrapper_type_turbofish();
+        let derive_traits = field.derive_traits;
 
         quote! {
             mod #module_name {
                 use super::*;
                 use serde::{Serialize as _, Deserialize as _};
 
-                #[derive(serde::Serialize, serde::Deserialize)]
+                #[derive(serde::Serialize, serde::Deserialize, #(#derive_traits),*)]
                 #[serde(transparent)]
                 #[repr(transparent)]
                 struct __Wrapper(#[#serde_attr] #substitute);

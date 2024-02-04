@@ -21,18 +21,30 @@ mod example {
     use serde::{Deserialize, Serialize};
     use serde_test::{assert_tokens, Token};
     use serde_nested_with::serde_nested;
-    use std::collections::BTreeMap;
-    use time::serde::rfc3339;
+    use std::collections::HashMap;
+    use time::serde::{rfc3339, iso8601};
     use time::OffsetDateTime;
 
-    #[serde_nested] // Make sure to add this attribute above the derive!
+    // Make sure to add the `serde_nested` attribute above the #[derive(...)]! This will allow the
+    // macro to modify the #[serde(...)] attributes before serde itself processes them.
+    #[serde_nested]
     #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
     pub struct Foo {
         #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
         pub bar: Option<Option<OffsetDateTime>>,
-        #[serde_nested(sub = "OffsetDateTime", serde(with = "rfc3339"))]
+
+        // You can add additional attributes to the original field and they will be preserved.
         #[serde(rename = "other")]
-        pub baz: Vec<(OffsetDateTime, OffsetDateTime)>,
+        #[serde_nested(
+            sub = "OffsetDateTime",
+            serde(serialize_with = "iso8601::serialize", deserialize_with = "iso8601::deserialize"),
+            // In this instance the substituted field needs to implement additional traits in order
+            // to be used as key in a HashMap. We can use the `derive_trait` attribute to add them.
+            derive_trait = "PartialEq",
+            derive_trait = "Eq",
+            derive_trait = "Hash"
+        )]
+        pub baz: HashMap<OffsetDateTime, OffsetDateTime>
     }
 }
 ```
