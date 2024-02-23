@@ -25,8 +25,9 @@ impl Field {
     /// Generate a unique name for the module that will contain the wrapper type and the
     /// (de)serialization functions. The name is based on the field type, the substitute type,
     /// and the serde attributes. In this way, we do not generate duplicate modules.
-    fn module_name(&self) -> String {
+    fn module_name(&self, struct_name: &syn::Ident) -> String {
         let hasher = &mut DefaultHasher::new();
+        struct_name.hash(hasher);
         self.ty.hash(hasher);
         self.substitute.hash(hasher);
         self.serde_attr.hash(hasher);
@@ -89,7 +90,7 @@ pub fn serde_nested(_: TokenStream, input: TokenStream) -> TokenStream {
                 if let Some(syn::PathSegment { ident, .. }) = list.path.segments.first_mut() {
                     if ident == "serde_nested" {
                         *ident = syn::parse_quote!(serde);
-                        let module_name = info.module_name();
+                        let module_name = info.module_name(&input.ident);
                         list.tokens = quote! { with = #module_name, #(#serde_attributes),* };
                         fields.insert(module_name, info.clone());
                     }
