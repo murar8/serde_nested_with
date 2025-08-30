@@ -1,5 +1,14 @@
+name: test
+
 on:
-    workflow_call:
+    pull_request:
+        branches:
+            - main
+    push:
+        branches:
+            - main
+        tags:
+            - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
     test:
@@ -14,56 +23,63 @@ jobs:
                       os: macos-latest
                     - toolchain: stable
                       os: windows-latest
-
         runs-on: ${{ matrix.os }}
-
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
-            - uses: actions-rs/toolchain@v1
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
                   toolchain: ${{ matrix.toolchain }}
-                  profile: minimal
-            - uses: Swatinem/rust-cache@v2
-            - uses: actions-rs/cargo@v1
-              with:
-                  command: test
-                  args: --workspace --all-features --all-targets
+            - run: cargo test --workspace --all-features --all-targets
 
     # See https://users.rust-lang.org/t/psa-please-specify-precise-dependency-versions-in-cargo-toml/71277
     minimal-version-test:
         runs-on: ubuntu-latest
-
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
-            - uses: actions-rs/toolchain@v1
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
                   toolchain: nightly
-                  profile: minimal
-            - uses: Swatinem/rust-cache@v2
             - uses: taiki-e/install-action@cargo-hack
             - uses: taiki-e/install-action@cargo-minimal-versions
-            - uses: actions-rs/cargo@v1
+            - run: cargo minimal-versions test --direct --workspace --all-features --all-targets
+
+    no-default-features-test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
               with:
-                  command: minimal-versions
-                  args: test --workspace --all-features --all-targets
+                  fetch-depth: 0
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+            - run: cargo test --workspace --all-targets --no-default-features
 
     doctest:
         runs-on: ubuntu-latest
-
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
-            - uses: actions-rs/toolchain@v1
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+            - run: cargo test --workspace --all-features --doc
+
+    coverage:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
               with:
-                  toolchain: stable
-                  profile: minimal
-            - uses: Swatinem/rust-cache@v2
-            - uses: actions-rs/cargo@v1
+                  fetch-depth: 0
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
               with:
-                  command: test
-                  args: --workspace --all-features --doc
+                  toolchain: nightly
+                  components: llvm-tools-preview # needed for llvm-cov
+            - uses: taiki-e/install-action@cargo-llvm-cov
+            - run: cargo llvm-cov --workspace --all-features --all-targets --lcov --output-path target/coverage.lcov
+            - uses: codecov/codecov-action@v5
+              env:
+                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+              with:
+                  files: target/coverage.lcov
+                  fail_ci_if_error: true

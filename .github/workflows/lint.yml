@@ -1,14 +1,22 @@
+name: lint
+
 on:
-    workflow_call:
+    pull_request:
+        branches:
+            - main
+    push:
+        branches:
+            - main
+        tags:
+            - "[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
     lint:
         runs-on: ubuntu-latest
-
         steps:
-            - uses: actions/checkout@v4
-            - uses: actions-rs/toolchain@v1
+            - uses: actions/checkout@v5
+            - uses: actions/setup-python@v5
               with:
-                  toolchain: stable
-            - uses: Swatinem/rust-cache@v2
-            - uses: pre-commit/action@v3.0.0
+                  python-version: "3.x"
+            - uses: actions-rust-lang/setup-rust-toolchain@v1
+            - uses: pre-commit/action@v3.0.1

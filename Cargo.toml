@@ -1,13 +1,13 @@
 [dependencies]
-darling = "0.20.5"
+darling = "0.21.3"
 proc-macro-error = "1.0.4"
-quote = "1.0.35"
-syn = "2.0.48"
+quote = "1.0.40"
+syn = "2.0.106"
 
 [dev-dependencies]
-serde = {version = "1.0.196", features = ["derive"]}
-serde_test = "1.0.176"
-time = {version = "0.3.32", features = ["formatting", "parsing", "serde"]}
+serde = { version = "1.0.219", features = ["derive"] }
+serde_test = "1.0.177"
+time = { version = "0.3.41", features = ["formatting", "parsing", "serde"] }
 
 [lib]
 proc-macro = true
