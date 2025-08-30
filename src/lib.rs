@@ -2,7 +2,7 @@
 
 use darling::FromField;
 use proc_macro::TokenStream;
-use proc_macro_error::proc_macro_error;
+use proc_macro_error2::proc_macro_error;
 use quote::{quote, ToTokens};
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;

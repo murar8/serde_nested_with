@@ -2,7 +2,6 @@
 
 [![Crates.io](https://img.shields.io/crates/v/serde_nested_with.svg)](https://crates.io/crates/serde_nested_with)
 [![Docs.rs](https://docs.rs/serde_nested_with/badge.svg)](https://docs.rs/serde_nested_with)
-[![.github/workflows/push.yml](https://github.com/murar8/serde_nested_with/actions/workflows/push.yml/badge.svg)](https://github.com/murar8/serde_nested_with/actions/workflows/push.yml)
 [![.github/workflows/audit.yml](https://github.com/murar8/serde_nested_with/actions/workflows/audit.yml/badge.svg)](https://github.com/murar8/serde_nested_with/actions/workflows/audit.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
